@@ -51,12 +51,6 @@ export interface VideoExporterConfig extends ExportConfig {
 	cursorTelemetry?: import("@/components/video-editor/types").CursorTelemetryPoint[];
 	cursorClickTimestamps?: number[];
 	onProgress?: (progress: ExportProgress) => void;
-	/**
-	 * WebCodecs encoder latency mode.
-	 * "realtime" is ~3-5× faster at the cost of slightly lower compression efficiency.
-	 * Defaults to "quality" to preserve existing behaviour for source-quality exports.
-	 */
-	latencyMode?: "quality" | "realtime";
 }
 
 const SOURCE_COPY_EPSILON = 0.0001;
@@ -568,7 +562,7 @@ export class VideoExporter {
 			height: this.config.height,
 			bitrate: this.config.bitrate,
 			framerate: this.config.frameRate,
-			latencyMode: this.config.latencyMode ?? "quality",
+			latencyMode: "quality",
 			bitrateMode: "variable",
 			hardwareAcceleration,
 		};
@@ -653,9 +647,9 @@ export class VideoExporter {
 	}
 
 	private getEncoderPreferences(): HardwareAcceleration[] {
-		// Prefer hardware on all platforms — GPU encoders (NVENC, VideoToolbox, VAAPI)
-		// typically run 5–10× faster than software. Fall back to software if hardware
-		// is unavailable or throws during configure/encode.
+		if (typeof navigator !== "undefined" && /\bWindows\b/i.test(navigator.userAgent)) {
+			return ["prefer-software", "prefer-hardware"];
+		}
 		return ["prefer-hardware", "prefer-software"];
 	}
 
