@@ -1804,6 +1804,9 @@ export default function VideoEditor() {
 						frameRate: 60,
 						bitrate,
 						codec: "avc1.640033",
+						// "realtime" skips encoder lookahead — ~3-5× faster for medium/good
+						// quality presets where maximum compression efficiency is not required.
+						latencyMode: quality === "source" ? "quality" : "realtime",
 						wallpaper,
 						zoomRegions,
 						trimRegions,
