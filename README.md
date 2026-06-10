@@ -1,5 +1,5 @@
-> [!WARNING]
-> This started as a side project that blew up; not production grade and you'll hit bugs, but hopefully it covers what you need. **This project will soon be archived.**
+> [!TIP]
+>  This orginal repository was archived by the owner on Jun 7, 2026. This repository is self-maintained after that. Welcome to open issues and make contributions.
 
 
 <p align="center">
@@ -21,6 +21,7 @@ If you don't want to pay $29/month for Screen Studio but want a version that doe
 Screen Studio is an awesome product and this is definitely not a 1:1 clone. If you just want something fully free and open source, this project should cover most of your needs.
 
 **100% free** for both **personal** and **commercial** use. Use it, modify it, distribute it. Please respect the License. 
+
 
 > [!NOTE]
 >Software should be accessible. OpenScreen has no paid tiers, premium features, upsells, or functionality locked behind a paywall.
