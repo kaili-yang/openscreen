@@ -43,6 +43,11 @@ interface Window {
 		}>;
 		selectSource: (source: ProcessedDesktopSource) => Promise<ProcessedDesktopSource | null>;
 		getSelectedSource: () => Promise<ProcessedDesktopSource | null>;
+		openRegionSelector: () => Promise<{ opened: boolean; reason?: string }>;
+		selectRegion: (payload: {
+			name: string;
+			bounds: { x: number; y: number; width: number; height: number };
+		}) => Promise<ProcessedDesktopSource | null>;
 		requestCameraAccess: () => Promise<{
 			success: boolean;
 			granted: boolean;
@@ -301,6 +306,7 @@ interface ProcessedDesktopSource {
 	display_id: string;
 	thumbnail: string | null;
 	appIcon: string | null;
+	region?: { x: number; y: number; width: number; height: number };
 }
 
 interface CursorTelemetryPoint {

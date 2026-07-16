@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { MdCheck } from "react-icons/md";
 import { useScopedT } from "@/contexts/I18nContext";
+import { isMac } from "@/utils/platformUtils";
 import { Button } from "../ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import styles from "./SourceSelector.module.css";
@@ -20,6 +21,18 @@ export function SourceSelector() {
 	const [selectedSource, setSelectedSource] = useState<DesktopSource | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [loadFailed, setLoadFailed] = useState(false);
+	const [activeTab, setActiveTab] = useState<string | null>(null);
+	const [isMacPlatform, setIsMacPlatform] = useState(false);
+
+	useEffect(() => {
+		let cancelled = false;
+		void isMac().then((value) => {
+			if (!cancelled) setIsMacPlatform(value);
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, []);
 
 	const fetchSources = useCallback(async () => {
 		setLoading(true);
@@ -67,6 +80,11 @@ export function SourceSelector() {
 	const handleShare = async () => {
 		if (selectedSource) await window.electronAPI.selectSource(selectedSource);
 	};
+	const handleSelectRegion = async () => {
+		await window.electronAPI.openRegionSelector();
+	};
+	const resolvedTab = activeTab ?? (screenSources.length === 0 ? "windows" : "screens");
+	const isRegionTab = isMacPlatform && resolvedTab === "region";
 
 	if (loading) {
 		return (
@@ -144,11 +162,10 @@ export function SourceSelector() {
 	return (
 		<div className={`min-h-screen flex flex-col ${styles.glassContainer}`}>
 			<div className="flex-1 flex flex-col w-full px-3.5 pt-3.5">
-				<Tabs
-					defaultValue={screenSources.length === 0 ? "windows" : "screens"}
-					className="flex-1 flex flex-col"
-				>
-					<TabsList className="mb-3 grid h-8 grid-cols-2 rounded-xl border border-white/[0.06] bg-white/[0.04] p-0.5">
+				<Tabs value={resolvedTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+					<TabsList
+						className={`mb-3 grid h-8 ${isMacPlatform ? "grid-cols-3" : "grid-cols-2"} rounded-xl border border-white/[0.06] bg-white/[0.04] p-0.5`}
+					>
 						<TabsTrigger
 							value="screens"
 							className="rounded-lg py-1 text-[11px] text-zinc-400 transition-all data-[state=active]:bg-white/[0.12] data-[state=active]:text-white"
@@ -161,6 +178,15 @@ export function SourceSelector() {
 						>
 							{t("sourceSelector.windows", { count: String(windowSources.length) })}
 						</TabsTrigger>
+						{isMacPlatform && (
+							<TabsTrigger
+								value="region"
+								data-testid="source-selector-region-tab"
+								className="rounded-lg py-1 text-[11px] text-zinc-400 transition-all data-[state=active]:bg-white/[0.12] data-[state=active]:text-white"
+							>
+								{t("sourceSelector.region")}
+							</TabsTrigger>
+						)}
 					</TabsList>
 					<div className="flex-1 min-h-0">
 						<TabsContent value="screens" className="h-full mt-0">
@@ -177,6 +203,21 @@ export function SourceSelector() {
 								{windowSources.map(renderSourceCard)}
 							</div>
 						</TabsContent>
+						{isMacPlatform && (
+							<TabsContent value="region" className="h-full mt-0">
+								<div className="flex h-[282px] flex-col items-center justify-center px-8 text-center">
+									<div className="mb-4 flex h-20 w-32 items-center justify-center rounded-lg border-2 border-dashed border-[#34B27B]/60">
+										<div className="h-10 w-16 rounded border border-[#34B27B] bg-[#34B27B]/15" />
+									</div>
+									<h3 className="text-sm font-semibold text-white">
+										{t("sourceSelector.regionTitle")}
+									</h3>
+									<p className="mt-2 text-xs leading-5 text-zinc-400">
+										{t("sourceSelector.regionDescription")}
+									</p>
+								</div>
+							</TabsContent>
+						)}
 					</div>
 				</Tabs>
 			</div>
@@ -191,11 +232,11 @@ export function SourceSelector() {
 				</Button>
 				<Button
 					data-testid="source-selector-share-button"
-					onClick={handleShare}
-					disabled={!selectedSource}
+					onClick={isRegionTab ? handleSelectRegion : handleShare}
+					disabled={!isRegionTab && !selectedSource}
 					className="h-8 rounded-lg bg-[#34B27B] px-5 text-[11px] font-semibold text-white transition-transform duration-150 hover:bg-[#34B27B]/85 active:scale-95 disabled:bg-zinc-700 disabled:opacity-30"
 				>
-					{tc("actions.share")}
+					{isRegionTab ? t("sourceSelector.selectRegion") : tc("actions.share")}
 				</Button>
 			</div>
 		</div>

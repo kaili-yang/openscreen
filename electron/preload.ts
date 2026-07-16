@@ -53,6 +53,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	getSelectedSource: () => {
 		return ipcRenderer.invoke("get-selected-source");
 	},
+	openRegionSelector: () => {
+		return ipcRenderer.invoke("open-region-selector");
+	},
+	selectRegion: (payload: {
+		name: string;
+		bounds: { x: number; y: number; width: number; height: number };
+	}) => {
+		return ipcRenderer.invoke("select-region", payload);
+	},
 	requestCameraAccess: () => {
 		return ipcRenderer.invoke("request-camera-access");
 	},

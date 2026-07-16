@@ -32,7 +32,18 @@
 		"loading": "Carregando fontes...",
 		"screens": "Telas ({{count}})",
 		"windows": "Janelas ({{count}})",
-		"defaultSourceName": "Tela"
+		"defaultSourceName": "Tela",
+		"region": "Região",
+		"regionTitle": "Grave uma parte da tela",
+		"regionDescription": "Desenhe um retângulo na tela principal. Apenas essa área será gravada.",
+		"selectRegion": "Selecionar região"
+	},
+	"regionSelector": {
+		"hint": "Arraste para selecionar a área que deseja gravar",
+		"cancelHint": "Pressione Esc para cancelar",
+		"tooSmall": "A seleção é muito pequena — arraste pelo menos {{min}}×{{min}} pixels",
+		"confirm": "Usar esta área",
+		"sourceName": "Região ({{width}}×{{height}})"
 	},
 	"recording": {
 		"selectSource": "Por favor, selecione uma fonte para gravar"

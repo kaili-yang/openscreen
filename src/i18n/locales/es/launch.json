@@ -34,7 +34,18 @@
 		"loading": "Cargando fuentes...",
 		"screens": "Pantallas ({{count}})",
 		"windows": "Ventanas ({{count}})",
-		"defaultSourceName": "Pantalla"
+		"defaultSourceName": "Pantalla",
+		"region": "Región",
+		"regionTitle": "Graba una parte de tu pantalla",
+		"regionDescription": "Dibuja un rectángulo en tu pantalla principal. Solo se grabará esa área.",
+		"selectRegion": "Seleccionar región"
+	},
+	"regionSelector": {
+		"hint": "Arrastra para seleccionar el área que quieres grabar",
+		"cancelHint": "Pulsa Esc para cancelar",
+		"tooSmall": "La selección es demasiado pequeña — arrastra al menos {{min}}×{{min}} píxeles",
+		"confirm": "Usar esta área",
+		"sourceName": "Región ({{width}}×{{height}})"
 	},
 	"recording": {
 		"selectSource": "Por favor selecciona una fuente para grabar"

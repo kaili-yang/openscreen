@@ -18,6 +18,7 @@ struct RecordingRequest: Decodable {
 		let displayId: UInt32?
 		let windowId: UInt32?
 		let bounds: Rectangle?
+		let region: Rectangle?
 	}
 
 	struct Video: Decodable {
@@ -124,6 +125,7 @@ final class ScreenCaptureRecorder: NSObject, SCStreamOutput, SCStreamDelegate {
 		let filter: SCContentFilter
 		let width: Int
 		let height: Int
+		var sourceRect: CGRect? = nil
 	}
 
 	private let request: RecordingRequest
@@ -143,6 +145,7 @@ final class ScreenCaptureRecorder: NSObject, SCStreamOutput, SCStreamDelegate {
 	private var nativeMicrophoneEnabled = false
 	private var outputWidth = 1920
 	private var outputHeight = 1080
+	private var captureSourceRect: CGRect?
 	private let microphoneOutputTypeRawValue = 2
 	private let hostClock = CMClockGetHostTimeClock()
 
@@ -160,6 +163,7 @@ final class ScreenCaptureRecorder: NSObject, SCStreamOutput, SCStreamDelegate {
 		let target = try makeCaptureTarget(from: content)
 		outputWidth = target.width
 		outputHeight = target.height
+		captureSourceRect = target.sourceRect
 		let configuration = makeStreamConfiguration()
 		let stream = SCStream(filter: target.filter, configuration: configuration, delegate: self)
 
@@ -371,6 +375,42 @@ final class ScreenCaptureRecorder: NSObject, SCStreamOutput, SCStreamDelegate {
 				width: clampCaptureDimension(width, fallback: request.video.width),
 				height: clampCaptureDimension(height, fallback: request.video.height)
 			)
+		case "region":
+			guard let displayId = request.source.displayId else {
+				throw HelperError.sourceNotFound("Region capture requires source.displayId.")
+			}
+			guard let display = content.displays.first(where: { $0.displayID == displayId }) else {
+				throw HelperError.sourceNotFound("No ScreenCaptureKit display found for id \(displayId).")
+			}
+			guard let region = request.source.region else {
+				throw HelperError.sourceNotFound("Region capture requires source.region bounds.")
+			}
+			let scaleFactor = Self.scaleFactor(for: display.displayID)
+			// CGDisplayPixelsWide/High report the display's logical (point) size for
+			// HiDPI modes, matching the coordinate space of sourceRect.
+			let displayPointWidth = Double(CGDisplayPixelsWide(display.displayID))
+			let displayPointHeight = Double(CGDisplayPixelsHigh(display.displayID))
+			// sourceRect is display-local, top-left origin, in points.
+			let rect = CGRect(x: region.x, y: region.y, width: region.width, height: region.height)
+				.intersection(CGRect(x: 0, y: 0, width: displayPointWidth, height: displayPointHeight))
+			guard rect.width >= 1, rect.height >= 1 else {
+				throw HelperError.sourceNotFound("Region bounds fall outside the target display.")
+			}
+			// Preserve the region's aspect ratio when the pixel size exceeds the
+			// requested maximum, instead of clamping each axis independently.
+			let pixelWidth = Int(rect.width) * scaleFactor
+			let pixelHeight = Int(rect.height) * scaleFactor
+			let downscale = min(
+				1.0,
+				Double(max(2, request.video.width)) / Double(max(1, pixelWidth)),
+				Double(max(2, request.video.height)) / Double(max(1, pixelHeight))
+			)
+			return CaptureTarget(
+				filter: SCContentFilter(display: display, excludingWindows: []),
+				width: evenCaptureDimension(Int(Double(pixelWidth) * downscale)),
+				height: evenCaptureDimension(Int(Double(pixelHeight) * downscale)),
+				sourceRect: rect
+			)
 		default:
 			throw HelperError.invalidSourceType(request.source.type)
 		}
@@ -380,6 +420,9 @@ final class ScreenCaptureRecorder: NSObject, SCStreamOutput, SCStreamDelegate {
 		let configuration = SCStreamConfiguration()
 		configuration.width = outputWidth
 		configuration.height = outputHeight
+		if let captureSourceRect {
+			configuration.sourceRect = captureSourceRect
+		}
 		configuration.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(max(1, request.video.fps)))
 		configuration.queueDepth = 6
 		configuration.showsCursor = !request.video.hideSystemCursor
@@ -585,11 +628,15 @@ final class ScreenCaptureRecorder: NSObject, SCStreamOutput, SCStreamDelegate {
 		return status == .complete
 	}
 
+	private func evenCaptureDimension(_ value: Int) -> Int {
+		let clamped = max(2, value)
+		return clamped - (clamped % 2)
+	}
+
 	private func clampCaptureDimension(_ value: Int, fallback: Int) -> Int {
 		let requested = max(2, fallback)
 		let candidate = value > 0 ? value : requested
-		let clamped = min(candidate, requested)
-		return max(2, clamped - (clamped % 2))
+		return evenCaptureDimension(min(candidate, requested))
 	}
 
 	private static func scaleFactor(for displayId: CGDirectDisplayID) -> Int {

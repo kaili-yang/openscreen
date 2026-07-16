@@ -42,7 +42,8 @@
 		"cameraDisconnected": "Webcam bị ngắt kết nối.",
 		"cameraNotFound": "Không tìm thấy máy ảnh.",
 		"permissionDenied": "Quyền ghi hình bị từ chối. Vui lòng cho phép ghi màn hình.",
-		"accessibilityAllowAndRetry": "Cho phép OpenScreen truy cập Trợ năng, sau đó nhấn ghi lại để bắt đầu đếm ngược."
+		"accessibilityAllowAndRetry": "Cho phép OpenScreen truy cập Trợ năng, sau đó nhấn ghi lại để bắt đầu đếm ngược.",
+		"regionUnsupported": "Ghi vùng cần trình ghi gốc của macOS, không khả dụng trong bản dựng này."
 	},
 	"autoCaptions": {
 		"button": "Phụ đề tự động",

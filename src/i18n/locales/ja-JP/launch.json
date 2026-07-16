@@ -34,7 +34,18 @@
 		"loading": "ソースを読み込み中...",
 		"screens": "画面 ({{count}})",
 		"windows": "ウィンドウ ({{count}})",
-		"defaultSourceName": "画面"
+		"defaultSourceName": "画面",
+		"region": "範囲",
+		"regionTitle": "画面の一部を録画",
+		"regionDescription": "メインディスプレイ上で矩形を描いて選択します。その範囲だけが録画されます。",
+		"selectRegion": "範囲を選択"
+	},
+	"regionSelector": {
+		"hint": "ドラッグして録画する範囲を選択してください",
+		"cancelHint": "Esc キーでキャンセル",
+		"tooSmall": "選択範囲が小さすぎます — {{min}}×{{min}} ピクセル以上で選択してください",
+		"confirm": "この範囲を使用",
+		"sourceName": "範囲（{{width}}×{{height}}）"
 	},
 	"recording": {
 		"selectSource": "録画するソースを選択してください"

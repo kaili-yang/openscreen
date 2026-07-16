@@ -1,6 +1,8 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { CountdownOverlay } from "./components/launch/CountdownOverlay.tsx";
 import { LaunchWindow } from "./components/launch/LaunchWindow";
+import { RegionHighlight } from "./components/launch/RegionHighlight";
+import { RegionSelector } from "./components/launch/RegionSelector";
 import { SourceSelector } from "./components/launch/SourceSelector";
 import { Toaster } from "./components/ui/sonner";
 import { TooltipProvider } from "./components/ui/tooltip";
@@ -27,7 +29,14 @@ export default function App() {
 			setWindowType(type);
 		}
 
-		if (type === "hud-overlay" || type === "source-selector" || type === "countdown-overlay") {
+		const transparentWindowTypes = [
+			"hud-overlay",
+			"source-selector",
+			"countdown-overlay",
+			"region-selector",
+			"region-highlight",
+		];
+		if (transparentWindowTypes.includes(type)) {
 			document.body.style.background = "transparent";
 			document.documentElement.style.background = "transparent";
 			document.getElementById("root")?.style.setProperty("background", "transparent");
@@ -63,6 +72,10 @@ export default function App() {
 				return <SourceSelector />;
 			case "countdown-overlay":
 				return <CountdownOverlay />;
+			case "region-selector":
+				return <RegionSelector />;
+			case "region-highlight":
+				return <RegionHighlight />;
 			case "editor":
 				return (
 					<ShortcutsProvider>

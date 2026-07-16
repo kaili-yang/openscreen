@@ -3,7 +3,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useScopedT } from "@/contexts/I18nContext";
 import {
+	isRegionSourceId,
 	type NativeMacRecordingRequest,
+	type NativeMacSourceType,
 	parseMacDisplayIdFromSourceId,
 	parseMacWindowIdFromSourceId,
 } from "@/lib/nativeMacRecording";
@@ -921,7 +923,12 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			}
 
 			const activeRecordingId = Date.now();
-			const sourceType = selectedSource.id.startsWith("window:") ? "window" : "display";
+			const region = isRegionSourceId(selectedSource.id) ? selectedSource.region : undefined;
+			const sourceType: NativeMacSourceType = region
+				? "region"
+				: selectedSource.id.startsWith("window:")
+					? "window"
+					: "display";
 			const displayId =
 				Number(selectedSource.display_id) || parseMacDisplayIdFromSourceId(selectedSource.id);
 			const windowId = parseMacWindowIdFromSourceId(selectedSource.id);
@@ -968,6 +975,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 					sourceId: selectedSource.id,
 					...(displayId ? { displayId } : {}),
 					...(windowId ? { windowId } : {}),
+					...(region ? { region } : {}),
 				},
 				video: {
 					fps: TARGET_FRAME_RATE,
@@ -1148,6 +1156,14 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				return;
 			}
 			if (await startNativeMacRecordingIfAvailable(selectedSource, countdownRunToken)) {
+				return;
+			}
+
+			// Region capture only exists in the native macOS pipeline; the Chromium
+			// fallback would silently record the whole screen instead.
+			if (isRegionSourceId(selectedSource.id)) {
+				alert(t("recording.regionUnsupported"));
+				teardownMedia();
 				return;
 			}
 

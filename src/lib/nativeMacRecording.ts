@@ -1,7 +1,10 @@
 import type { Rectangle } from "electron";
 import type { CursorCaptureMode } from "./recordingSession";
 
-export type NativeMacSourceType = "display" | "window";
+export type NativeMacSourceType = "display" | "window" | "region";
+
+/** Minimum region selection size in DIP, enforced by both the selector UI and main-process validation. */
+export const MIN_REGION_SIZE = 50;
 
 export type NativeMacRecordingRequest = {
 	schemaVersion: 1;
@@ -12,6 +15,7 @@ export type NativeMacRecordingRequest = {
 		displayId?: number;
 		windowId?: number;
 		bounds?: Rectangle;
+		region?: Rectangle;
 	};
 	video: {
 		fps: number;
@@ -114,4 +118,52 @@ export function parseMacDisplayIdFromSourceId(sourceId?: string | null) {
 	}
 
 	return Number(displayIdPart);
+}
+
+export function isRegionSourceId(sourceId?: string | null) {
+	return Boolean(sourceId?.startsWith("region:"));
+}
+
+export function normalizeRegionRect(value: unknown): Rectangle | null {
+	if (!value || typeof value !== "object") {
+		return null;
+	}
+
+	const { x, y, width, height } = value as Record<string, unknown>;
+	if (
+		typeof x !== "number" ||
+		typeof y !== "number" ||
+		typeof width !== "number" ||
+		typeof height !== "number" ||
+		!Number.isFinite(x) ||
+		!Number.isFinite(y) ||
+		!Number.isFinite(width) ||
+		!Number.isFinite(height)
+	) {
+		return null;
+	}
+
+	const rect = {
+		x: Math.round(x),
+		y: Math.round(y),
+		width: Math.round(width),
+		height: Math.round(height),
+	};
+	if (rect.width < 1 || rect.height < 1) {
+		return null;
+	}
+
+	return rect;
+}
+
+export function clampRegionToBounds(region: Rectangle, bounds: Rectangle): Rectangle | null {
+	const left = Math.max(region.x, bounds.x);
+	const top = Math.max(region.y, bounds.y);
+	const right = Math.min(region.x + region.width, bounds.x + bounds.width);
+	const bottom = Math.min(region.y + region.height, bounds.y + bounds.height);
+	if (right - left < 1 || bottom - top < 1) {
+		return null;
+	}
+
+	return { x: left, y: top, width: right - left, height: bottom - top };
 }

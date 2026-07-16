@@ -30,7 +30,18 @@
 		"loading": "Загрузка источников...",
 		"screens": "Экраны ({{count}})",
 		"windows": "Окна ({{count}})",
-		"defaultSourceName": "Экран"
+		"defaultSourceName": "Экран",
+		"region": "Область",
+		"regionTitle": "Запись части экрана",
+		"regionDescription": "Выделите прямоугольник на основном дисплее. Будет записана только эта область.",
+		"selectRegion": "Выбрать область"
+	},
+	"regionSelector": {
+		"hint": "Перетащите, чтобы выделить область для записи",
+		"cancelHint": "Нажмите Esc для отмены",
+		"tooSmall": "Выделение слишком маленькое — выделите не менее {{min}}×{{min}} пикселей",
+		"confirm": "Использовать эту область",
+		"sourceName": "Область ({{width}}×{{height}})"
 	},
 	"recording": {
 		"selectSource": "Пожалуйста, выберите источник для записи"
