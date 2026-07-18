@@ -1,41 +1,58 @@
-> [!Note]
-> OpenScreen is now archived and no longer maintained. For continued maintenance and development, a community-driven spin-off led by one of the core contributors is available here: https://github.com/EtienneLescot/openscreen
-
-
-> [!WARNING]
-> This started as a side project that blew up; not production grade and you'll hit bugs, but hopefully it covers what you need. **This project will soon be archived.**
-
+> [!IMPORTANT]
+> **This project is actively maintained.** The original OpenScreen repository was archived by its author in 2026. This repository picks up where it left off — I ([@kaili-yang](https://github.com/kaili-yang)) am continuing development and maintenance here, and new releases will be published from this repository going forward.
 
 <p align="center">
   <img src="public/openscreen.png" alt="OpenScreen Logo" width="64" />
-  <br />
-  <br />
-	<a href="https://trendshift.io/repositories/17427" target="_blank"><img src="https://trendshift.io/api/badge/repositories/17427" alt="siddharthvaddem%2Fopenscreen | Trendshift" style="width: 256px; height: 64px;" width="256" height="64"/></a>
-
-
-  </a>
 </p>
 
 # <p align="center">OpenScreen</p>
 
 <p align="center"><strong>OpenScreen is your free, open-source alternative to Screen Studio.</strong></p>
 
-If you don't want to pay $29/month for Screen Studio but want a version that does what most people seem to need - quick, polished product demos and walkthroughs you'd post on X, Reddit or Youtube. OpenScreen does not offer every Screen Studio feature, but covers a lot of the core functionality.
+If you don't want to pay $29/month for Screen Studio but want a version that does what most people seem to need — quick, polished product demos and walkthroughs you'd post on X, Reddit or YouTube — OpenScreen covers most of the core functionality, fully free and open source.
 
-Screen Studio is an awesome product and this is definitely not a 1:1 clone. If you just want something fully free and open source, this project should cover most of your needs.
-
-**100% free** for both **personal** and **commercial** use. Use it, modify it, distribute it. Please respect the License. 
-
-> [!NOTE]
->Software should be accessible. OpenScreen has no paid tiers, premium features, upsells, or functionality locked behind a paywall.
+**100% free** for both **personal** and **commercial** use. No paid tiers, premium features, upsells, or functionality locked behind a paywall.
 
 <p align="center">
 	<img src="public/demo.png" alt="" style="height: 0.2467; margin-right: 12px;" />
   <img src="public/sample.png" alt="" style="height: 0.2467; margin-right: 12px;" />
 </p>
 
+## What's new under active maintenance
+
+Updates landed since this repository took over development:
+
+- **macOS region recording** — select and record an arbitrary region of the screen, with a draggable/resizable selection overlay, instead of only full-screen or per-window capture.
+- **Native cursor bitmap capture on macOS** — the real cursor shape, type, and clicks are captured natively (previously Windows-only), powering cursor themes, click effects, and the editable cursor overlay on Mac.
+- Ongoing dependency upgrades, bug fixes, and review-driven cleanups across the capture pipeline.
+
+## Roadmap
+
+Planned next, roughly in order:
+
+- [ ] **Region recording on Windows** — bring the new region capture to the Windows Graphics Capture pipeline for feature parity.
+- [ ] **First release from this repository** — new signed installers (macOS `.dmg`, Windows `.exe`, Linux packages) published on this repo's Releases page.
+- [ ] **Region recording on Linux** — region selection for the browser-based capture pipeline.
+- [ ] **Electron and dependency upgrades** — keep the app on current Electron and patch known issues inherited from the upstream backlog.
+- [ ] **Export improvements** — WebM export and finer control over bitrate/quality presets.
+- [ ] **Editor performance** — faster timeline scrubbing and export on long recordings.
+
+Have something you want prioritized? [Open an issue](../../issues) — the roadmap is driven by what people actually need.
+
+## Contributing — maintainers wanted
+
+This is a big app (Electron + React, with native Swift and Windows capture helpers) and I'm looking for people to help maintain and grow it. All skill levels welcome:
+
+- **Code** — pick up a roadmap item above, grab an open issue, or fix a bug you've hit yourself. See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup and workflow.
+- **Platform expertise** — especially wanted: Windows (WGC/native capture) and Linux (PipeWire) contributors, since my daily driver is macOS.
+- **Translations** — the app ships in 13 languages; native speakers to review and extend translations are always welcome.
+- **Testing & issues** — trying out builds on different OS versions and filing clear bug reports is genuinely valuable.
+
+If you'd like to get involved beyond one-off PRs — triaging issues, reviewing, or co-maintaining — open an issue or reach out, and I'll happily hand out responsibility as trust builds.
+
 ## Core Features
-- Record a specific window, or your whole screen.
+
+- Record a specific window, your whole screen, or a selected region (macOS).
 - Record microphone and system audio.
 - Webcam overlay with picture-in-picture, drag-to-position, mirroring, and shape options.
 - Auto or manual zooms with adjustable depth, duration, easing, and pixel-precise position; auto-zoom follows your cursor as you work.
@@ -50,10 +67,9 @@ Screen Studio is an awesome product and this is definitely not a 1:1 clone. If y
 - Export to MP4 or GIF in multiple aspect ratios and resolutions.
 - Languages supported: Arabic, English, Spanish, French, Italian, Japanese, Korean, Portuguese (Brazil), Russian, Turkish, Vietnamese, Simplified Chinese, and Traditional Chinese.
 
-
 ## Installation
 
-Download the latest installer for your platform from the [GitHub Releases](https://github.com/siddharthvaddem/openscreen/releases) page.
+New releases will be published on this repository's [Releases page](../../releases). Until the first release ships from here, the installers below come from the last upstream release (v1.5.0).
 
 ### macOS
 
@@ -70,7 +86,7 @@ To uninstall: `brew uninstall --cask openscreen` (add `--zap` to also remove app
 
 #### Manual install (if you prefer)
 
-If you'd rather grab the `.dmg` directly from the [Releases page](https://github.com/siddharthvaddem/openscreen/releases) and encounter Gatekeeper blocking the app, you can bypass it by running the following command in your terminal after installation:
+If you'd rather grab the `.dmg` directly from the Releases page and encounter Gatekeeper blocking the app, you can bypass it by running the following command in your terminal after installation:
 
 ```bash
 xattr -rd com.apple.quarantine /Applications/Openscreen.app
@@ -94,11 +110,11 @@ winget install SiddharthVaddem.OpenScreen
 To update later: `winget upgrade SiddharthVaddem.OpenScreen`
 To uninstall: `winget uninstall SiddharthVaddem.OpenScreen`
 
-If you'd rather grab the `.exe` installer directly, download it from the [Releases page](https://github.com/siddharthvaddem/openscreen/releases).
+If you'd rather grab the `.exe` installer directly, download it from the Releases page.
 
 ### Linux
 
-Three packages are published to the [Releases page](https://github.com/siddharthvaddem/openscreen/releases) for each version. Pick the one that matches your distro:
+Three packages are published for each version. Pick the one that matches your distro:
 
 **Debian / Ubuntu / Pop!_OS (`.deb`)**
 ```bash
@@ -120,18 +136,18 @@ chmod +x Openscreen-Linux-*.AppImage
 
 Try without installing:
 ```bash
-nix run github:siddharthvaddem/openscreen
+nix run github:kaili-yang/openscreen
 ```
 
 Install into your user profile:
 ```bash
-nix profile install github:siddharthvaddem/openscreen
+nix profile install github:kaili-yang/openscreen
 ```
 
 For a NixOS system config (flake):
 ```nix
 {
-  inputs.openscreen.url = "github:siddharthvaddem/openscreen";
+  inputs.openscreen.url = "github:kaili-yang/openscreen";
 
   outputs = { nixpkgs, openscreen, ... }: {
     nixosConfigurations.<host> = nixpkgs.lib.nixosSystem {
@@ -158,6 +174,7 @@ You may need to grant screen recording permissions depending on your desktop env
 Everything in the editor and export is the same on macOS, Windows, and Linux: zooms, backgrounds, motion blur, crop/trim/speed, blur regions, annotations, auto-captions, projects, export, and all languages. The differences are in **capture**, where macOS and Windows use a native pipeline that Linux doesn't have:
 
 - **Native recording**: macOS (ScreenCaptureKit) and Windows (Windows Graphics Capture) record through a native pipeline for higher quality and clean window-level capture. Linux records through the browser pipeline instead.
+- **Region recording**: currently macOS only (Windows and Linux are on the roadmap).
 - **Custom cursors**: on macOS and Windows the real cursor is captured (shape, type, and clicks), which powers the cursor themes, click effects, and editable cursor overlay. On Linux only the cursor position is captured (used for auto-zoom), so those cursor options aren't available.
 - **Webcam**: captured natively on macOS and Windows; on Linux it's recorded through the browser, but still works as a picture-in-picture overlay.
 - **System audio** support varies by OS:
