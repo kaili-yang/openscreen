@@ -40,7 +40,8 @@
 		"cameraDenied": "Acesso à câmera negado. A gravação continuará sem webcam.",
 		"cameraDisconnected": "Webcam desconectada.",
 		"cameraNotFound": "Câmera não encontrada.",
-		"permissionDenied": "Permissão de gravação negada. Por favor, permita a gravação de tela."
+		"permissionDenied": "Permissão de gravação negada. Por favor, permita a gravação de tela.",
+		"regionUnsupported": "A gravação de região requer o gravador nativo do macOS, que não está disponível nesta versão."
 	},
 	"autoCaptions": {
 		"button": "Legendas automáticas",

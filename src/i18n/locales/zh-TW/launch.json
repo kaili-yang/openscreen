@@ -34,7 +34,18 @@
 		"loading": "正在載入來源...",
 		"screens": "螢幕 ({{count}})",
 		"windows": "視窗 ({{count}})",
-		"defaultSourceName": "螢幕"
+		"defaultSourceName": "螢幕",
+		"region": "區域",
+		"regionTitle": "錄製螢幕的一部分",
+		"regionDescription": "在主顯示器上框選一個矩形區域，僅錄製該區域。",
+		"selectRegion": "選擇區域"
+	},
+	"regionSelector": {
+		"hint": "拖曳以選擇要錄製的區域",
+		"cancelHint": "按 Esc 取消",
+		"tooSmall": "選取範圍太小 — 請至少框選 {{min}}×{{min}} 像素",
+		"confirm": "使用此區域",
+		"sourceName": "區域（{{width}}×{{height}}）"
 	},
 	"recording": {
 		"selectSource": "請選擇要錄製的來源"

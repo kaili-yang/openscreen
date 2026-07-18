@@ -34,7 +34,18 @@
 		"loading": "Kaynaklar yükleniyor...",
 		"screens": "Ekranlar ({{count}})",
 		"windows": "Pencereler ({{count}})",
-		"defaultSourceName": "Ekran"
+		"defaultSourceName": "Ekran",
+		"region": "Bölge",
+		"regionTitle": "Ekranın bir bölümünü kaydedin",
+		"regionDescription": "Ana ekranınızda bir dikdörtgen çizin. Yalnızca o alan kaydedilecek.",
+		"selectRegion": "Bölge seç"
+	},
+	"regionSelector": {
+		"hint": "Kaydetmek istediğiniz alanı seçmek için sürükleyin",
+		"cancelHint": "İptal etmek için Esc tuşuna basın",
+		"tooSmall": "Seçim çok küçük — en az {{min}}×{{min}} piksel sürükleyin",
+		"confirm": "Bu alanı kullan",
+		"sourceName": "Bölge ({{width}}×{{height}})"
 	},
 	"recording": {
 		"selectSource": "Lütfen kayıt için bir kaynak seçin"

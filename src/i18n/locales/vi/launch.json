@@ -30,7 +30,18 @@
 		"loading": "Đang tải nguồn...",
 		"screens": "Màn hình ({{count}})",
 		"windows": "Cửa sổ ({{count}})",
-		"defaultSourceName": "Màn hình"
+		"defaultSourceName": "Màn hình",
+		"region": "Vùng",
+		"regionTitle": "Ghi lại một phần màn hình",
+		"regionDescription": "Vẽ một hình chữ nhật trên màn hình chính. Chỉ vùng đó sẽ được ghi lại.",
+		"selectRegion": "Chọn vùng"
+	},
+	"regionSelector": {
+		"hint": "Kéo để chọn vùng bạn muốn ghi",
+		"cancelHint": "Nhấn Esc để hủy",
+		"tooSmall": "Vùng chọn quá nhỏ — hãy kéo ít nhất {{min}}×{{min}} pixel",
+		"confirm": "Dùng vùng này",
+		"sourceName": "Vùng ({{width}}×{{height}})"
 	},
 	"recording": {
 		"selectSource": "Vui lòng chọn một nguồn để ghi"

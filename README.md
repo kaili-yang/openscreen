@@ -1,5 +1,9 @@
-> [!TIP]
->  This orginal repository was archived by the owner on Jun 7, 2026. This repository is self-maintained after that. Welcome to open issues and make contributions.
+> [!Note]
+> OpenScreen is now archived and no longer maintained. For continued maintenance and development, a community-driven spin-off led by one of the core contributors is available here: https://github.com/EtienneLescot/openscreen
+
+
+> [!WARNING]
+> This started as a side project that blew up; not production grade and you'll hit bugs, but hopefully it covers what you need. **This project will soon be archived.**
 
 
 <p align="center">

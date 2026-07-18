@@ -34,7 +34,18 @@
 		"loading": "소스 불러오는 중...",
 		"screens": "화면 ({{count}}개)",
 		"windows": "창 ({{count}}개)",
-		"defaultSourceName": "화면"
+		"defaultSourceName": "화면",
+		"region": "영역",
+		"regionTitle": "화면 일부 녹화",
+		"regionDescription": "기본 디스플레이에서 사각형 영역을 드래그하여 선택하세요. 해당 영역만 녹화됩니다.",
+		"selectRegion": "영역 선택"
+	},
+	"regionSelector": {
+		"hint": "녹화할 영역을 드래그하여 선택하세요",
+		"cancelHint": "Esc 키를 눌러 취소",
+		"tooSmall": "선택 영역이 너무 작습니다 — 최소 {{min}}×{{min}} 픽셀 이상 드래그하세요",
+		"confirm": "이 영역 사용",
+		"sourceName": "영역 ({{width}}×{{height}})"
 	},
 	"recording": {
 		"selectSource": "녹화할 소스를 선택해 주세요"

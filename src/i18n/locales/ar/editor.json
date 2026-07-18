@@ -42,7 +42,8 @@
 		"cameraDisconnected": "تم فصل كاميرا الويب.",
 		"cameraNotFound": "لم يتم العثور على كاميرا.",
 		"permissionDenied": "تم رفض إذن التسجيل. يرجى السماح بتسجيل الشاشة.",
-		"accessibilityAllowAndRetry": "اسمح بوصول تسهيلات الاستخدام لـ OpenScreen، ثم اضغط على التسجيل مرة أخرى لبدء العد التنازلي."
+		"accessibilityAllowAndRetry": "اسمح بوصول تسهيلات الاستخدام لـ OpenScreen، ثم اضغط على التسجيل مرة أخرى لبدء العد التنازلي.",
+		"regionUnsupported": "يتطلب تسجيل المنطقة مسجّل macOS الأصلي، وهو غير متوفر في هذا الإصدار."
 	},
 	"autoCaptions": {
 		"button": "التسميات التوضيحية التلقائية",

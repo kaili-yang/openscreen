@@ -34,7 +34,18 @@
 		"loading": "Caricamento sorgenti...",
 		"screens": "Schermi ({{count}})",
 		"windows": "Finestre ({{count}})",
-		"defaultSourceName": "Schermo"
+		"defaultSourceName": "Schermo",
+		"region": "Area",
+		"regionTitle": "Registra una parte dello schermo",
+		"regionDescription": "Disegna un rettangolo sul display principale. Verrà registrata solo quell'area.",
+		"selectRegion": "Seleziona area"
+	},
+	"regionSelector": {
+		"hint": "Trascina per selezionare l'area da registrare",
+		"cancelHint": "Premi Esc per annullare",
+		"tooSmall": "La selezione è troppo piccola — trascina almeno {{min}}×{{min}} pixel",
+		"confirm": "Usa quest'area",
+		"sourceName": "Area ({{width}}×{{height}})"
 	},
 	"recording": {
 		"selectSource": "Seleziona una sorgente da registrare"

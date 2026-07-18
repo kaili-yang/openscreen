@@ -30,7 +30,18 @@
 		"loading": "جاري تحميل المصادر...",
 		"screens": "الشاشات ({{count}})",
 		"windows": "النوافذ ({{count}})",
-		"defaultSourceName": "الشاشة"
+		"defaultSourceName": "الشاشة",
+		"region": "منطقة",
+		"regionTitle": "سجّل جزءًا من شاشتك",
+		"regionDescription": "ارسم مستطيلًا على شاشتك الرئيسية. سيتم تسجيل تلك المنطقة فقط.",
+		"selectRegion": "تحديد المنطقة"
+	},
+	"regionSelector": {
+		"hint": "اسحب لتحديد المنطقة التي تريد تسجيلها",
+		"cancelHint": "اضغط Esc للإلغاء",
+		"tooSmall": "التحديد صغير جدًا — اسحب {{min}}×{{min}} بكسل على الأقل",
+		"confirm": "استخدام هذه المنطقة",
+		"sourceName": "منطقة ({{width}}×{{height}})"
 	},
 	"recording": {
 		"selectSource": "يرجى تحديد مصدر للتسجيل"

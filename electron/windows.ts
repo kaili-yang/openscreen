@@ -17,6 +17,16 @@ const ASSET_BASE_DIR = process.defaultApp
 const ASSET_BASE_URL_ARG = `--asset-base-url=${pathToFileURL(`${ASSET_BASE_DIR}${path.sep}`).toString()}`;
 
 let hudOverlayWindow: BrowserWindow | null = null;
+let regionSelectorWindow: BrowserWindow | null = null;
+let regionHighlightWindow: BrowserWindow | null = null;
+
+function loadWindowType(win: BrowserWindow, windowType: string) {
+	if (VITE_DEV_SERVER_URL) {
+		win.loadURL(`${VITE_DEV_SERVER_URL}?windowType=${windowType}`);
+	} else {
+		win.loadFile(path.join(RENDERER_DIST, "index.html"), { query: { windowType } });
+	}
+}
 
 ipcMain.on("hud-overlay-hide", () => {
 	if (hudOverlayWindow && !hudOverlayWindow.isDestroyed()) {
@@ -264,6 +274,152 @@ export function createSourceSelectorWindow(): BrowserWindow {
 			query: { windowType: "source-selector" },
 		});
 	}
+
+	return win;
+}
+
+export function getRegionSelectorWindow(): BrowserWindow | null {
+	return regionSelectorWindow && !regionSelectorWindow.isDestroyed() ? regionSelectorWindow : null;
+}
+
+/**
+ * Full-screen interactive overlay on the primary display where the user drags
+ * out the rectangle to record. Focusable so Esc/Enter reach the renderer.
+ */
+export function createRegionSelectorWindow(): BrowserWindow {
+	const existing = getRegionSelectorWindow();
+	if (existing) {
+		existing.focus();
+		return existing;
+	}
+
+	const { bounds } = screen.getPrimaryDisplay();
+
+	const win = new BrowserWindow({
+		x: bounds.x,
+		y: bounds.y,
+		width: bounds.width,
+		height: bounds.height,
+		frame: false,
+		transparent: true,
+		backgroundColor: "#00000000",
+		roundedCorners: false,
+		resizable: false,
+		movable: false,
+		alwaysOnTop: true,
+		skipTaskbar: true,
+		hasShadow: false,
+		fullscreenable: false,
+		show: false, // shown via ready-to-show to avoid black rectangle flash
+		webPreferences: {
+			preload: path.join(__dirname, "preload.mjs"),
+			additionalArguments: [ASSET_BASE_URL_ARG],
+			nodeIntegration: false,
+			contextIsolation: true,
+			backgroundThrottling: false,
+		},
+	});
+
+	// Sit above regular windows and the menu bar so the selection can reach the
+	// screen edges.
+	win.setAlwaysOnTop(true, "screen-saver");
+
+	if (process.platform === "darwin") {
+		win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+	}
+
+	win.once("ready-to-show", () => {
+		if (!HEADLESS) {
+			win.show();
+			win.focus();
+		}
+	});
+
+	regionSelectorWindow = win;
+
+	win.on("closed", () => {
+		if (regionSelectorWindow === win) {
+			regionSelectorWindow = null;
+		}
+	});
+
+	loadWindowType(win, "region-selector");
+
+	return win;
+}
+
+export function destroyRegionHighlightWindow(): void {
+	const win =
+		regionHighlightWindow && !regionHighlightWindow.isDestroyed() ? regionHighlightWindow : null;
+	regionHighlightWindow = null;
+	if (win) {
+		win.close();
+	}
+}
+
+/** Border stroke drawn by the highlight renderer sits inside this margin. */
+export const REGION_HIGHLIGHT_MARGIN = 4;
+
+/**
+ * Click-through border window framing the region being recorded.
+ * setContentProtection (NSWindowSharingNone) keeps it out of the capture.
+ */
+export function createRegionHighlightWindow(regionBounds: {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+}): BrowserWindow {
+	destroyRegionHighlightWindow();
+
+	const win = new BrowserWindow({
+		x: regionBounds.x - REGION_HIGHLIGHT_MARGIN,
+		y: regionBounds.y - REGION_HIGHLIGHT_MARGIN,
+		width: regionBounds.width + REGION_HIGHLIGHT_MARGIN * 2,
+		height: regionBounds.height + REGION_HIGHLIGHT_MARGIN * 2,
+		frame: false,
+		transparent: true,
+		backgroundColor: "#00000000",
+		roundedCorners: false,
+		resizable: false,
+		movable: false,
+		alwaysOnTop: true,
+		skipTaskbar: true,
+		focusable: false,
+		hasShadow: false,
+		show: false,
+		webPreferences: {
+			preload: path.join(__dirname, "preload.mjs"),
+			additionalArguments: [ASSET_BASE_URL_ARG],
+			nodeIntegration: false,
+			contextIsolation: true,
+			backgroundThrottling: false,
+		},
+	});
+
+	// Clicks must pass through to the apps being recorded underneath.
+	win.setIgnoreMouseEvents(true);
+	win.setAlwaysOnTop(true, "screen-saver");
+	// NSWindowSharingNone keeps the border out of any capture of this display.
+	win.setContentProtection(true);
+
+	if (process.platform === "darwin") {
+		win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+	}
+
+	win.once("ready-to-show", () => {
+		if (!HEADLESS) win.showInactive();
+	});
+
+	regionHighlightWindow = win;
+
+	win.on("closed", () => {
+		if (regionHighlightWindow === win) {
+			regionHighlightWindow = null;
+		}
+	});
+
+	loadWindowType(win, "region-highlight");
 
 	return win;
 }

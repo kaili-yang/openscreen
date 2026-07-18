@@ -16,7 +16,12 @@ import {
 	shell,
 	systemPreferences,
 } from "electron";
-import type { NativeMacRecordingRequest } from "../../src/lib/nativeMacRecording";
+import {
+	clampRegionToBounds,
+	MIN_REGION_SIZE,
+	type NativeMacRecordingRequest,
+	normalizeRegionRect,
+} from "../../src/lib/nativeMacRecording";
 import type { NativeWindowsRecordingRequest } from "../../src/lib/nativeWindowsRecording";
 import {
 	type CursorCaptureMode,
@@ -41,6 +46,12 @@ import { createCursorRecordingSession } from "../native-bridge/cursor/recording/
 import { requestMacCursorAccessibilityAccess } from "../native-bridge/cursor/recording/macNativeCursorRecordingSession";
 import type { CursorRecordingSession } from "../native-bridge/cursor/recording/session";
 import { patchWebmDurationOnDisk } from "../recording/webm-duration";
+import {
+	createRegionHighlightWindow,
+	createRegionSelectorWindow,
+	destroyRegionHighlightWindow,
+	getRegionSelectorWindow,
+} from "../windows";
 import { registerNativeBridgeHandlers } from "./nativeBridge";
 import { RecordingStreamRegistry, registerRecordingStreamHandlers } from "./recordingStream";
 
@@ -341,6 +352,7 @@ type SelectedSource = {
 	name: string;
 	id?: string;
 	display_id?: string;
+	region?: { x: number; y: number; width: number; height: number };
 	[key: string]: unknown;
 };
 
@@ -423,6 +435,27 @@ let nativeMacCursorRecordingStartMs = 0;
 let nativeMacPauseStartedAtMs: number | null = null;
 let nativeMacPauseRanges: Array<{ startMs: number; endMs: number }> = [];
 let nativeMacIsPaused = false;
+let nativeMacCaptureOwnerDispose: (() => void) | null = null;
+
+/**
+ * Single owner of the native macOS capture session teardown: module state, the
+ * region highlight window, and the renderer-destroyed listener. Called from
+ * every exit path (stop, start failure, orphan discard).
+ */
+function resetNativeMacCaptureState() {
+	nativeMacCaptureProcess = null;
+	nativeMacCaptureTargetPath = null;
+	nativeMacCaptureRecordingId = null;
+	nativeMacCursorOffsetMs = 0;
+	nativeMacCursorCaptureMode = "editable-overlay";
+	nativeMacCursorRecordingStartMs = 0;
+	nativeMacPauseStartedAtMs = null;
+	nativeMacPauseRanges = [];
+	nativeMacIsPaused = false;
+	nativeMacCaptureOwnerDispose?.();
+	nativeMacCaptureOwnerDispose = null;
+	destroyRegionHighlightWindow();
+}
 
 function normalizeCursorSample(sample: unknown): CursorRecordingSample | null {
 	if (!sample || typeof sample !== "object") {
@@ -572,6 +605,14 @@ function resolveAssetBasePath() {
 }
 
 function getSelectedSourceBounds() {
+	// Region recordings capture a sub-rect of a display; cursor telemetry must
+	// normalize against that rect, not the whole display. The region was already
+	// validated and clamped by the "select-region" handler, and this runs on the
+	// per-cursor-sample hot path, so return it as-is.
+	if (selectedSource?.region) {
+		return selectedSource.region;
+	}
+
 	const cursor = screen.getCursorScreenPoint();
 	const sourceDisplayId = Number(selectedSource?.display_id);
 	const sourceDisplay = Number.isFinite(sourceDisplayId)
@@ -1075,6 +1116,44 @@ function attachNativeMacCaptureOutputDrain(proc: ChildProcessWithoutNullStreams)
 	proc.once("error", cleanup);
 }
 
+/**
+ * Stops and discards a native macOS capture whose initiating renderer is gone
+ * (window closed/reloaded mid-start). Without this, the helper records
+ * invisibly forever and every later start fails with "already running".
+ */
+async function discardOrphanNativeMacCapture(): Promise<void> {
+	const proc = nativeMacCaptureProcess;
+	if (!proc) {
+		return;
+	}
+
+	console.warn("[native-sck] discarding orphaned macOS capture");
+	const orphanPath = nativeMacCaptureTargetPath;
+	resetNativeMacCaptureState();
+
+	try {
+		const stopped = waitForNativeMacCaptureStop(proc).catch(() => null);
+		if (proc.stdin.writable) {
+			proc.stdin.write("stop\n");
+		}
+		await Promise.race([stopped, new Promise((resolve) => setTimeout(resolve, 5_000))]);
+	} catch {
+		// Fall through to the hard kill below.
+	}
+	if (proc.exitCode === null && !proc.killed) {
+		proc.kill();
+	}
+
+	await stopCursorRecording();
+	pendingCursorRecordingData = null;
+	if (orphanPath) {
+		await Promise.all([
+			fs.rm(orphanPath, { force: true }).catch(() => undefined),
+			fs.rm(`${orphanPath}.cursor.json`, { force: true }).catch(() => undefined),
+		]);
+	}
+}
+
 function waitForNativeMacCaptureStart(proc: ChildProcessWithoutNullStreams) {
 	return new Promise<void>((resolve, reject) => {
 		const timer = setTimeout(() => {
@@ -1346,6 +1425,50 @@ export function registerIpcHandlers(
 	ipcMain.handle("get-selected-source", () => {
 		return selectedSource;
 	});
+
+	ipcMain.handle("open-region-selector", async () => {
+		if (process.platform !== "darwin") {
+			return { opened: false, reason: "unsupported-platform" };
+		}
+
+		const sourceSelectorWin = getSourceSelectorWindow();
+		if (sourceSelectorWin) {
+			sourceSelectorWin.close();
+		}
+		createRegionSelectorWindow();
+		return { opened: true };
+	});
+
+	ipcMain.handle(
+		"select-region",
+		(_, payload: { name?: string; bounds?: unknown } | null | undefined) => {
+			getRegionSelectorWindow()?.close();
+
+			const normalized = normalizeRegionRect(payload?.bounds);
+			const display = normalized && screen.getDisplayMatching(normalized);
+			const region = display && clampRegionToBounds(normalized, display.bounds);
+			if (!region || region.width < MIN_REGION_SIZE || region.height < MIN_REGION_SIZE) {
+				return null;
+			}
+
+			const name =
+				typeof payload?.name === "string" && payload.name.trim()
+					? payload.name.trim()
+					: `Region (${region.width}×${region.height})`;
+			selectedSource = {
+				id: `region:${display.id}`,
+				name,
+				display_id: String(display.id),
+				region,
+			};
+			// Regions record exclusively through the native helper. Leaving the
+			// Chromium desktop source unset guarantees no getDisplayMedia consumer
+			// can silently capture the whole display instead.
+			selectedDesktopSource = null;
+
+			return selectedSource;
+		},
+	);
 
 	ipcMain.handle("request-camera-access", async () => {
 		if (process.platform !== "darwin") {
@@ -1720,148 +1843,193 @@ export function registerIpcHandlers(
 		},
 	);
 
-	ipcMain.handle("start-native-mac-recording", async (_, request: NativeMacRecordingRequest) => {
-		try {
-			if (process.platform !== "darwin") {
-				return { success: false, error: "Native macOS capture requires macOS." };
-			}
-			if (nativeMacCaptureProcess) {
-				return { success: false, error: "Native macOS capture is already running." };
-			}
-
-			const helperPath = await findNativeMacCaptureHelperPath();
-			if (!helperPath) {
-				return { success: false, error: "Native macOS capture helper is not available." };
-			}
-
-			if (!request?.source?.sourceId) {
-				return { success: false, error: "Native macOS capture request is missing a source." };
-			}
-
-			const recordingId =
-				typeof request.recordingId === "number" && Number.isFinite(request.recordingId)
-					? request.recordingId
-					: Date.now();
-			const outputPath = path.join(RECORDINGS_DIR, `${RECORDING_FILE_PREFIX}${recordingId}.mp4`);
-			const cursorCaptureMode =
-				normalizeCursorCaptureMode(request.cursor?.mode) ?? "editable-overlay";
+	ipcMain.handle(
+		"start-native-mac-recording",
+		async (event, request: NativeMacRecordingRequest) => {
 			try {
-				await desktopCapturer.getSources({
-					types: ["screen"],
-					thumbnailSize: { width: 1, height: 1 },
-				});
-			} catch {
-				// The helper reports the final ScreenCaptureKit permission status.
-			}
-			if (request.audio?.microphone?.enabled) {
-				const micStatus = systemPreferences.getMediaAccessStatus("microphone");
-				if (micStatus !== "granted") {
-					await systemPreferences.askForMediaAccess("microphone");
+				if (process.platform !== "darwin") {
+					return { success: false, error: "Native macOS capture requires macOS." };
 				}
+				if (nativeMacCaptureProcess) {
+					// The HUD only asks to start when it believes nothing is recording, so
+					// an existing capture is an orphan (its renderer died mid-start).
+					await discardOrphanNativeMacCapture();
+				}
+
+				const helperPath = await findNativeMacCaptureHelperPath();
+				if (!helperPath) {
+					return { success: false, error: "Native macOS capture helper is not available." };
+				}
+
+				if (!request?.source?.sourceId) {
+					return { success: false, error: "Native macOS capture request is missing a source." };
+				}
+
+				const recordingId =
+					typeof request.recordingId === "number" && Number.isFinite(request.recordingId)
+						? request.recordingId
+						: Date.now();
+				const outputPath = path.join(RECORDINGS_DIR, `${RECORDING_FILE_PREFIX}${recordingId}.mp4`);
+				const cursorCaptureMode =
+					normalizeCursorCaptureMode(request.cursor?.mode) ?? "editable-overlay";
+				try {
+					await desktopCapturer.getSources({
+						types: ["screen"],
+						thumbnailSize: { width: 1, height: 1 },
+					});
+				} catch {
+					// The helper reports the final ScreenCaptureKit permission status.
+				}
+				if (request.audio?.microphone?.enabled) {
+					const micStatus = systemPreferences.getMediaAccessStatus("microphone");
+					if (micStatus !== "granted") {
+						await systemPreferences.askForMediaAccess("microphone");
+					}
+				}
+				const isRegion = request.source.type === "region";
+				const sourceDisplay =
+					(request.source.type === "display" || isRegion) &&
+					typeof request.source.displayId === "number"
+						? (screen.getAllDisplays().find((display) => display.id === request.source.displayId) ??
+							null)
+						: getSelectedDisplay();
+				const bounds = request.source.bounds ?? sourceDisplay?.bounds ?? getSelectedSourceBounds();
+
+				let regionRect: Electron.Rectangle | null = null;
+				if (isRegion) {
+					const displayBounds = (sourceDisplay ?? screen.getPrimaryDisplay()).bounds;
+					const globalRegion = normalizeRegionRect(request.source.region);
+					const clampedRegion = globalRegion && clampRegionToBounds(globalRegion, displayBounds);
+					if (!clampedRegion) {
+						return {
+							success: false,
+							error: "Native macOS region capture request is missing valid region bounds.",
+						};
+					}
+					// The Swift helper expects the region relative to the display origin.
+					regionRect = {
+						x: clampedRegion.x - displayBounds.x,
+						y: clampedRegion.y - displayBounds.y,
+						width: clampedRegion.width,
+						height: clampedRegion.height,
+					};
+
+					// The border stays out of the capture via setContentProtection
+					// (NSWindowSharingNone), so this doesn't need to block the start.
+					createRegionHighlightWindow(clampedRegion);
+				}
+
+				const config: NativeMacRecordingRequest = {
+					...request,
+					schemaVersion: 1,
+					recordingId,
+					source: {
+						...request.source,
+						bounds,
+						...(regionRect ? { region: regionRect } : {}),
+					},
+					video: {
+						...request.video,
+						hideSystemCursor: cursorCaptureMode === "editable-overlay",
+					},
+					webcam: {
+						...request.webcam,
+						enabled: false,
+					},
+					cursor: {
+						mode: cursorCaptureMode,
+					},
+					outputs: {
+						screenPath: outputPath,
+						manifestPath: path.join(
+							RECORDINGS_DIR,
+							`${RECORDING_FILE_PREFIX}${recordingId}${RECORDING_SESSION_SUFFIX}`,
+						),
+					},
+				};
+
+				console.info("[native-sck] starting macOS capture", {
+					helperPath,
+					source: config.source,
+					audio: config.audio,
+					webcam: config.webcam,
+					cursor: config.cursor,
+					outputPath,
+				});
+
+				await fs.mkdir(RECORDINGS_DIR, { recursive: true });
+				nativeMacCaptureOutput = "";
+				nativeMacCaptureTargetPath = outputPath;
+				nativeMacCaptureRecordingId = recordingId;
+				nativeMacCursorOffsetMs = 0;
+				nativeMacCursorCaptureMode = cursorCaptureMode;
+				nativeMacCursorRecordingStartMs = 0;
+				nativeMacPauseStartedAtMs = null;
+				nativeMacPauseRanges = [];
+				nativeMacIsPaused = false;
+
+				const cursorStartTimeMs = Date.now();
+				if (cursorCaptureMode === "editable-overlay") {
+					nativeMacCursorRecordingStartMs = cursorStartTimeMs;
+					await startCursorRecording(cursorStartTimeMs);
+				} else {
+					pendingCursorRecordingData = null;
+				}
+
+				const proc = spawn(helperPath, [JSON.stringify(config)], {
+					cwd: RECORDINGS_DIR,
+					stdio: ["pipe", "pipe", "pipe"],
+				});
+				nativeMacCaptureProcess = proc;
+				attachNativeMacCaptureOutputDrain(proc);
+				// Keep the region highlight border's lifetime tied to the helper process,
+				// and clear the module state if the helper dies unexpectedly so a later
+				// start isn't blocked by a stale process reference.
+				proc.once("close", () => {
+					destroyRegionHighlightWindow();
+					if (nativeMacCaptureProcess === proc) {
+						nativeMacCaptureProcess = null;
+					}
+				});
+				// If the renderer that started this capture goes away (window closed or
+				// reloaded mid-recording), stop and discard instead of recording blindly.
+				const onOwnerDestroyed = () => {
+					if (nativeMacCaptureProcess === proc) {
+						void discardOrphanNativeMacCapture();
+					}
+				};
+				event.sender.once("destroyed", onOwnerDestroyed);
+				nativeMacCaptureOwnerDispose = () => {
+					event.sender.off("destroyed", onOwnerDestroyed);
+				};
+
+				await waitForNativeMacCaptureStart(proc);
+				const captureStartedAtMs = Date.now();
+				nativeMacCursorOffsetMs =
+					cursorCaptureMode === "editable-overlay"
+						? Math.max(0, captureStartedAtMs - cursorStartTimeMs)
+						: 0;
+
+				const source = selectedSource || { name: "Screen" };
+				if (onRecordingStateChange) {
+					onRecordingStateChange(true, source.name);
+				}
+
+				return {
+					success: true,
+					recordingId,
+					path: outputPath,
+					helperPath,
+				};
+			} catch (error) {
+				console.error("Failed to start native macOS recording:", error);
+				nativeMacCaptureProcess?.kill();
+				resetNativeMacCaptureState();
+				await stopCursorRecording();
+				return { success: false, error: error instanceof Error ? error.message : String(error) };
 			}
-			const sourceDisplay =
-				request.source.type === "display" && typeof request.source.displayId === "number"
-					? (screen.getAllDisplays().find((display) => display.id === request.source.displayId) ??
-						null)
-					: getSelectedDisplay();
-			const bounds = request.source.bounds ?? sourceDisplay?.bounds ?? getSelectedSourceBounds();
-			const config: NativeMacRecordingRequest = {
-				...request,
-				schemaVersion: 1,
-				recordingId,
-				source: {
-					...request.source,
-					bounds,
-				},
-				video: {
-					...request.video,
-					hideSystemCursor: cursorCaptureMode === "editable-overlay",
-				},
-				webcam: {
-					...request.webcam,
-					enabled: false,
-				},
-				cursor: {
-					mode: cursorCaptureMode,
-				},
-				outputs: {
-					screenPath: outputPath,
-					manifestPath: path.join(
-						RECORDINGS_DIR,
-						`${RECORDING_FILE_PREFIX}${recordingId}${RECORDING_SESSION_SUFFIX}`,
-					),
-				},
-			};
-
-			console.info("[native-sck] starting macOS capture", {
-				helperPath,
-				source: config.source,
-				audio: config.audio,
-				webcam: config.webcam,
-				cursor: config.cursor,
-				outputPath,
-			});
-
-			await fs.mkdir(RECORDINGS_DIR, { recursive: true });
-			nativeMacCaptureOutput = "";
-			nativeMacCaptureTargetPath = outputPath;
-			nativeMacCaptureRecordingId = recordingId;
-			nativeMacCursorOffsetMs = 0;
-			nativeMacCursorCaptureMode = cursorCaptureMode;
-			nativeMacCursorRecordingStartMs = 0;
-			nativeMacPauseStartedAtMs = null;
-			nativeMacPauseRanges = [];
-			nativeMacIsPaused = false;
-
-			const cursorStartTimeMs = Date.now();
-			if (cursorCaptureMode === "editable-overlay") {
-				nativeMacCursorRecordingStartMs = cursorStartTimeMs;
-				await startCursorRecording(cursorStartTimeMs);
-			} else {
-				pendingCursorRecordingData = null;
-			}
-
-			const proc = spawn(helperPath, [JSON.stringify(config)], {
-				cwd: RECORDINGS_DIR,
-				stdio: ["pipe", "pipe", "pipe"],
-			});
-			nativeMacCaptureProcess = proc;
-			attachNativeMacCaptureOutputDrain(proc);
-
-			await waitForNativeMacCaptureStart(proc);
-			const captureStartedAtMs = Date.now();
-			nativeMacCursorOffsetMs =
-				cursorCaptureMode === "editable-overlay"
-					? Math.max(0, captureStartedAtMs - cursorStartTimeMs)
-					: 0;
-
-			const source = selectedSource || { name: "Screen" };
-			if (onRecordingStateChange) {
-				onRecordingStateChange(true, source.name);
-			}
-
-			return {
-				success: true,
-				recordingId,
-				path: outputPath,
-				helperPath,
-			};
-		} catch (error) {
-			console.error("Failed to start native macOS recording:", error);
-			nativeMacCaptureProcess?.kill();
-			nativeMacCaptureProcess = null;
-			nativeMacCaptureTargetPath = null;
-			nativeMacCaptureRecordingId = null;
-			nativeMacCursorOffsetMs = 0;
-			nativeMacCursorCaptureMode = "editable-overlay";
-			nativeMacCursorRecordingStartMs = 0;
-			nativeMacPauseStartedAtMs = null;
-			nativeMacPauseRanges = [];
-			nativeMacIsPaused = false;
-			await stopCursorRecording();
-			return { success: false, error: error instanceof Error ? error.message : String(error) };
-		}
-	});
+		},
+	);
 
 	ipcMain.handle("pause-native-mac-recording", async () => {
 		if (process.platform !== "darwin") {
@@ -2118,15 +2286,7 @@ export function registerIpcHandlers(
 			await stopCursorRecording();
 			return { success: false, error: error instanceof Error ? error.message : String(error) };
 		} finally {
-			nativeMacCaptureProcess = null;
-			nativeMacCaptureTargetPath = null;
-			nativeMacCaptureRecordingId = null;
-			nativeMacCursorOffsetMs = 0;
-			nativeMacCursorCaptureMode = "editable-overlay";
-			nativeMacCursorRecordingStartMs = 0;
-			nativeMacPauseStartedAtMs = null;
-			nativeMacPauseRanges = [];
-			nativeMacIsPaused = false;
+			resetNativeMacCaptureState();
 			const source = selectedSource || { name: "Screen" };
 			if (onRecordingStateChange) {
 				onRecordingStateChange(false, source.name);

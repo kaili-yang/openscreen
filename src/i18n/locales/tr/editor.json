@@ -34,7 +34,8 @@
 		"permissionDenied": "Kayıt izni reddedildi. Lütfen ekran kaydına izin verin.",
 		"cameraDisconnected": "Webcam bağlantısı kesildi.",
 		"cameraNotFound": "Kamera bulunamadı.",
-		"accessibilityAllowAndRetry": "OpenScreen için Erişilebilirlik erişimine izin verin, ardından geri sayımı başlatmak için tekrar kayda basın."
+		"accessibilityAllowAndRetry": "OpenScreen için Erişilebilirlik erişimine izin verin, ardından geri sayımı başlatmak için tekrar kayda basın.",
+		"regionUnsupported": "Bölge kaydı, bu sürümde bulunmayan yerel macOS kaydediciyi gerektirir."
 	},
 	"loadingVideo": "Video yükleniyor...",
 	"loadingEditor": "Editör yükleniyor...",

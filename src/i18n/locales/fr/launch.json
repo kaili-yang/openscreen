@@ -34,7 +34,18 @@
 		"loading": "Chargement des sources...",
 		"screens": "Écrans ({{count}})",
 		"windows": "Fenêtres ({{count}})",
-		"defaultSourceName": "Écran"
+		"defaultSourceName": "Écran",
+		"region": "Zone",
+		"regionTitle": "Enregistrer une partie de l'écran",
+		"regionDescription": "Tracez un rectangle sur votre écran principal. Seule cette zone sera enregistrée.",
+		"selectRegion": "Sélectionner la zone"
+	},
+	"regionSelector": {
+		"hint": "Faites glisser pour sélectionner la zone à enregistrer",
+		"cancelHint": "Appuyez sur Échap pour annuler",
+		"tooSmall": "La sélection est trop petite — faites glisser au moins {{min}}×{{min}} pixels",
+		"confirm": "Utiliser cette zone",
+		"sourceName": "Zone ({{width}}×{{height}})"
 	},
 	"recording": {
 		"selectSource": "Veuillez sélectionner une source à enregistrer"

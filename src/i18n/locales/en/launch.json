@@ -38,7 +38,18 @@
 		"emptyTitle": "No screens or windows found",
 		"emptyDescription": "If you just granted screen recording permission, reload this picker. On macOS you may need to reopen OpenScreen.",
 		"loadFailedDescription": "OpenScreen could not load capture sources. Reload this picker and try again.",
-		"defaultSourceName": "Screen"
+		"defaultSourceName": "Screen",
+		"region": "Region",
+		"regionTitle": "Record part of your screen",
+		"regionDescription": "Draw a rectangle on your main display. Only that area will be recorded.",
+		"selectRegion": "Select region"
+	},
+	"regionSelector": {
+		"hint": "Drag to select the area you want to record",
+		"cancelHint": "Press Esc to cancel",
+		"tooSmall": "Selection is too small — drag at least {{min}}×{{min}} pixels",
+		"confirm": "Use this area",
+		"sourceName": "Region ({{width}}×{{height}})"
 	},
 	"recording": {
 		"selectSource": "Please select a source to record"
