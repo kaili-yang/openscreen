@@ -26,6 +26,7 @@ Screen Studio is an awesome product and this is definitely not a 1:1 clone. If y
 
 **100% free** for both **personal** and **commercial** use. Use it, modify it, distribute it. Please respect the License. 
 
+
 > [!NOTE]
 >Software should be accessible. OpenScreen has no paid tiers, premium features, upsells, or functionality locked behind a paywall.
 
